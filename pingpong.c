@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <time.h>
 #include <SDL2/SDL.h>
 #include <SDL_ttf.h>
 
@@ -11,7 +12,7 @@
 #define FPS 120
 #define TARGET_FRAME_TIME (1000 / FPS)
 
-typedef struct game_state {
+typedef struct {
     int is_running;
     int last_frame_time;
 
@@ -36,42 +37,222 @@ typedef struct game_state {
     } player_one, player_two;
 } game_state;
 
+/* --------------------------------------------------------------------- */
+typedef struct {
+    float x;
+    float y;
+    float vel_x;
+    float vel_y;
+    float w;
+    float h;
+    float alpha;
+} particle;
+
+particle particles[] = {
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+    {0, 0, 0, 0, 2, 2, 0},
+};
+
+#define PARTICLE_COUNT sizeof(particles) / sizeof(particle)
+/* --------------------------------------------------------------------- */
+
+void exit_error(const char *error)
+{
+    fprintf(stderr, "%s\n", error);
+    exit(1);
+}
+
 void initialize_window(SDL_Window **window, SDL_Renderer **renderer)
 {
-    if(SDL_Init(SDL_INIT_EVERYTHING) != 0) {
-        fprintf(stderr, "Error initializing SDL.\n");
-        exit(1);
-    }
+    int sdl;
+    sdl = SDL_Init(SDL_INIT_EVERYTHING);
+    if(sdl != 0)
+        exit_error("Error initializing SDL.");
 
     *window = SDL_CreateWindow(
         NULL,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT,
         SDL_WINDOW_SHOWN);
-    if(!window) {
-        fprintf(stderr, "Error creating SDL Window.\n");
-        exit(1);
-    }
+    if(!window)
+        exit_error("Error creating SDL Window.");
 
     *renderer = SDL_CreateRenderer(*window, -1, 0);
-    if(!renderer) {
-        fprintf(stderr, "Error creating SDL Renderer.\n");
-        exit(1);
-    }
+    if(!renderer)
+        exit_error("Error creating SDL Renderer.");
 }
 
 void initialized_font(TTF_Font **font)
 {
-    if(TTF_Init() < 0) {
-        fprintf(stderr, "Error opening font.\n");
-        exit(1);
-    }
+    int ttf;
+    ttf = TTF_Init();
+    if(ttf < 0)
+        exit_error("Error opening font.");
 
     *font = TTF_OpenFont("./iosevka-bold.ttf", 36);
-    if(!font) {
-        fprintf(stderr, "Error opening font.\n");
-        exit(1);
-    }
+    if(!font)
+        exit_error("Error opening font.");
 }
 
 void handle_ball(game_state *state, float delta_time)
@@ -82,6 +263,17 @@ void handle_ball(game_state *state, float delta_time)
     {
         state->ball.x = state->player_one.x + state->player_one.width;
         state->ball.acceleration_x *= -1;
+
+        /* TODO: Add particles. */
+        int i;
+        for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
+            particles[i].vel_x = rand() % 61 + 60;
+            particles[i].vel_y = rand() % 121 - 60;
+
+            particles[i].x = state->ball.x;
+            particles[i].y = state->ball.y;
+            particles[i].alpha = 255.0f;
+        }
     }
 
     if(state->ball.x + state->ball.width > state->player_two.x &&
@@ -90,6 +282,17 @@ void handle_ball(game_state *state, float delta_time)
     {
         state->ball.x = state->player_two.x - state->ball.width;
         state->ball.acceleration_x *= -1;
+
+        /* TODO: Add particles. */
+        int i;
+        for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
+            particles[i].vel_x = -(rand() % 61 + 60);
+            particles[i].vel_y = rand() % 81 - 40;
+
+            particles[i].x = state->ball.x + state->ball.width;
+            particles[i].y = state->ball.y;
+            particles[i].alpha = 255.0f;
+        }
     }
 
     if(state->ball.x <= 0) {
@@ -149,10 +352,9 @@ void render_score(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
     SDL_Surface *text;
     SDL_Color color = { 198, 204, 215, 255 };
     text = TTF_RenderText_Solid(font, score, color);
-    if (!text) {
-        fprintf(stderr, "Error initializing Text.\n");
-        exit(1);
-    }
+    if (!text)
+        exit_error("Error initializing Text.");
+
     SDL_Texture *text_texture;
     text_texture = SDL_CreateTextureFromSurface(renderer, text);
     SDL_Rect dest = { WINDOW_WIDTH/2-20, 10, text->w, text->h };
@@ -162,6 +364,14 @@ void render_score(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
     SDL_DestroyTexture(text_texture);
     SDL_FreeSurface(text);
     free(score);
+}
+
+void render_ball(game_state *state, SDL_Renderer *renderer)
+{
+    SDL_Rect ball_rect = { state->ball.x, state->ball.y, state->ball.width,
+        state->ball.height };
+    SDL_SetRenderDrawColor(renderer, 198, 204, 215, 255);
+    SDL_RenderFillRect(renderer, &ball_rect);
 }
 
 void render_paddles(game_state *state, SDL_Renderer *renderer)
@@ -178,18 +388,16 @@ void render_paddles(game_state *state, SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &player_two_rect);
 }
 
-void render_ball(game_state *state, SDL_Renderer *renderer)
-{
-    SDL_Rect ball_rect = { state->ball.x, state->ball.y, state->ball.width,
-        state->ball.height };
-    SDL_SetRenderDrawColor(renderer, 198, 204, 215, 255);
-    SDL_RenderFillRect(renderer, &ball_rect);
-}
-
 void setup(game_state *state)
 {
     state->is_running = TRUE;
     state->last_frame_time = 0;
+
+    int i;
+    for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
+        particles[i].w = rand() % 3 + 1;
+        particles[i].y = particles[i].w;
+    }
 
     state->ball.x = 40;
     state->ball.y = 40;
@@ -251,8 +459,11 @@ void process_input(game_state *state)
             state->is_running = FALSE;
             break;
         case SDL_KEYDOWN:
-            if(event.key.keysym.sym == SDLK_ESCAPE)
+            if(event.key.keysym.sym == SDLK_ESCAPE ||
+                event.key.keysym.sym == SDLK_q)
+            {
                 state->is_running = FALSE;
+            }
             break;
     }
 }
@@ -261,6 +472,7 @@ void update(game_state *state)
 {
     int time_to_wait;
     float delta_time;
+    int i;
 
     time_to_wait = TARGET_FRAME_TIME - (SDL_GetTicks() - state->last_frame_time);
 
@@ -273,6 +485,15 @@ void update(game_state *state)
 
     handle_ball(state, delta_time);
     handle_paddles(state, delta_time);
+
+    for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
+        particles[i].alpha -= 2.0f;
+        if(particles[i].alpha < 0.0f)
+            particles[i].alpha = 0.0f;
+
+        particles[i].x += particles[i].vel_x * delta_time;
+        particles[i].y += particles[i].vel_y * delta_time;
+    }
 }
 
 void render(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
@@ -283,6 +504,19 @@ void render(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
     render_paddles(state, renderer);
     render_ball(state, renderer);
     render_score(state, renderer, font);
+
+    SDL_Rect particle_rect;
+    int i;
+    for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
+        particle_rect.x = particles[i].x;
+        particle_rect.y = particles[i].y;
+        particle_rect.w = particles[i].w;
+        particle_rect.h = particles[i].h;
+
+        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+        SDL_SetRenderDrawColor(renderer, 198, 204, 215, (int)particles[i].alpha);
+        SDL_RenderFillRect(renderer, &particle_rect);
+    }
 
     SDL_RenderPresent(renderer);
 }
@@ -296,6 +530,8 @@ void destroy_window(SDL_Window *window, SDL_Renderer *renderer)
 
 int main()
 {
+    srand(time(NULL));
+
     game_state state;
     SDL_Window *window = NULL;
     SDL_Renderer *renderer = NULL;
