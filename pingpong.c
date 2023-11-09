@@ -13,6 +13,76 @@
 #define TARGET_FRAME_TIME (1000 / FPS)
 
 typedef struct {
+    float x;
+    float y;
+} xy_point;
+
+typedef struct {
+    unsigned int r;
+    unsigned int g;
+    unsigned int b;
+} rgb;
+
+typedef struct {
+    float w;
+    float h;
+} rect;
+
+typedef struct {
+    xy_point point;
+    xy_point velocity;
+    rect dimension;
+    rgb color;
+    int alpha;
+} particle;
+
+struct node {
+    struct node *next;
+    particle data;
+};
+
+typedef struct {
+    struct node *first;
+    struct node *last;
+} queue;
+
+void qinit(queue *item)
+{
+    item->first = NULL;
+    item->last = NULL;
+}
+
+void qput(queue *item, particle data)
+{
+    if(!item->first) {
+        item->first = malloc(sizeof(struct node));
+        item->last = item->first;
+    } else {
+        item->last->next = malloc(sizeof(struct node));
+        item->last = item->last->next;
+    }
+    item->last->data = data;
+    item->last->next = NULL;
+}
+
+void qget(queue *item, particle *data)
+{
+    if(data)
+        *data = item->first->data;
+
+    struct node *tmp = item->first;
+    item->first = item->first->next;
+    if(!item->first)
+        item->last = NULL;
+    free(tmp);
+}
+
+int qempty(queue *item)
+{
+    return !item->first;
+}
+
+typedef struct {
     int is_running;
     int last_frame_time;
 
@@ -35,187 +105,9 @@ typedef struct {
         int up;
         int down;
     } player_one, player_two;
+
+    queue particle_queue;
 } game_state;
-
-/* --------------------------------------------------------------------- */
-typedef struct {
-    float x;
-    float y;
-    float vel_x;
-    float vel_y;
-    float w;
-    float h;
-    float alpha;
-} particle;
-
-particle particles[] = {
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-    {0, 0, 0, 0, 2, 2, 0},
-};
-
-#define PARTICLE_COUNT sizeof(particles) / sizeof(particle)
-/* --------------------------------------------------------------------- */
 
 void exit_error(const char *error)
 {
@@ -255,6 +147,13 @@ void initialized_font(TTF_Font **font)
         exit_error("Error opening font.");
 }
 
+void emit_particle(game_state *state, xy_point point, xy_point velocity, 
+    rect dimension, rgb color, int alpha)
+{
+    particle p = {point, velocity, dimension, color, alpha};
+    qput(&state->particle_queue, p);
+}
+
 void handle_ball(game_state *state, float delta_time)
 {
     if(state->ball.x < state->player_one.x + state->player_one.width &&
@@ -264,15 +163,14 @@ void handle_ball(game_state *state, float delta_time)
         state->ball.x = state->player_one.x + state->player_one.width;
         state->ball.acceleration_x *= -1;
 
-        /* TODO: Add particles. */
         int i;
-        for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
-            particles[i].vel_x = rand() % 61 + 60;
-            particles[i].vel_y = rand() % 121 - 60;
-
-            particles[i].x = state->ball.x;
-            particles[i].y = state->ball.y;
-            particles[i].alpha = 255.0f;
+        for(i = 0; i < 50; i++) {
+            xy_point point = {state->ball.x + state->ball.width, state->ball.y};
+            xy_point velocity = {rand() % 81 + 80, rand() % 161 - 80};
+            rgb color = {215, 78, 66};
+            float width = (float)(rand() % 4 + 1);
+            rect dimension = {width, width};
+            emit_particle(state, point, velocity, dimension, color, 255);
         }
     }
 
@@ -283,15 +181,14 @@ void handle_ball(game_state *state, float delta_time)
         state->ball.x = state->player_two.x - state->ball.width;
         state->ball.acceleration_x *= -1;
 
-        /* TODO: Add particles. */
         int i;
-        for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
-            particles[i].vel_x = -(rand() % 61 + 60);
-            particles[i].vel_y = rand() % 81 - 40;
-
-            particles[i].x = state->ball.x + state->ball.width;
-            particles[i].y = state->ball.y;
-            particles[i].alpha = 255.0f;
+        for(i = 0; i < 50; i++) {
+            xy_point point = {state->ball.x, state->ball.y};
+            xy_point velocity = {-(rand() % 81 + 80), rand() % 161 - 80};
+            rgb color = {16, 133, 255};
+            float width = (float)(rand() % 4 + 1);
+            rect dimension = {width, width};
+            emit_particle(state, point, velocity, dimension, color, 255);
         }
     }
 
@@ -339,9 +236,28 @@ void handle_paddles(game_state *state, float delta_time)
         state->player_two.y += state->player_one.acceleration_y * delta_time;
 }
 
+void handle_particles(game_state *state, float delta_time)
+{
+    if(!qempty(&state->particle_queue)) {
+        struct node *tmp = state->particle_queue.first;
+        while(tmp) {
+            tmp->data.alpha -= 2; /* TODO: Lock to delta time. */
+            if(tmp->data.alpha < 0.0f) {
+                tmp = tmp->next;
+                qget(&state->particle_queue, NULL);
+                continue;
+            }
+            tmp->data.point.x += tmp->data.velocity.x * delta_time;
+            tmp->data.point.y += tmp->data.velocity.y * delta_time;
+
+            tmp = tmp->next;
+        }
+    }
+}
+
 void render_score(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
 {
-    /* Build score strings */
+    /* Build score string */
     char *score;
     score = malloc(3*sizeof(char));
     score[0] = (char)(state->player_one.score + 48); /* FIX */
@@ -388,16 +304,34 @@ void render_paddles(game_state *state, SDL_Renderer *renderer)
     SDL_RenderFillRect(renderer, &player_two_rect);
 }
 
+void render_particles(game_state *state, SDL_Renderer *renderer)
+{
+    if(!qempty(&state->particle_queue)) {
+        SDL_Rect particle_rect;
+        struct node *tmp = state->particle_queue.first;
+        while(tmp) {
+            particle_rect.x = tmp->data.point.x;
+            particle_rect.y = tmp->data.point.y;
+            particle_rect.w = tmp->data.dimension.w;
+            particle_rect.h = tmp->data.dimension.h;
+
+            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(renderer,
+                tmp->data.color.r, tmp->data.color.g,
+                tmp->data.color.b, tmp->data.alpha);
+            SDL_RenderFillRect(renderer, &particle_rect);
+
+            tmp = tmp->next;
+        }
+    }
+}
+
 void setup(game_state *state)
 {
     state->is_running = TRUE;
     state->last_frame_time = 0;
 
-    int i;
-    for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
-        particles[i].w = rand() % 3 + 1;
-        particles[i].y = particles[i].w;
-    }
+    qinit(&state->particle_queue);
 
     state->ball.x = 40;
     state->ball.y = 40;
@@ -472,7 +406,6 @@ void update(game_state *state)
 {
     int time_to_wait;
     float delta_time;
-    int i;
 
     time_to_wait = TARGET_FRAME_TIME - (SDL_GetTicks() - state->last_frame_time);
 
@@ -485,15 +418,7 @@ void update(game_state *state)
 
     handle_ball(state, delta_time);
     handle_paddles(state, delta_time);
-
-    for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
-        particles[i].alpha -= 2.0f;
-        if(particles[i].alpha < 0.0f)
-            particles[i].alpha = 0.0f;
-
-        particles[i].x += particles[i].vel_x * delta_time;
-        particles[i].y += particles[i].vel_y * delta_time;
-    }
+    handle_particles(state, delta_time);
 }
 
 void render(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
@@ -504,19 +429,7 @@ void render(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
     render_paddles(state, renderer);
     render_ball(state, renderer);
     render_score(state, renderer, font);
-
-    SDL_Rect particle_rect;
-    int i;
-    for(i = 0; i < (int)(PARTICLE_COUNT); i++) {
-        particle_rect.x = particles[i].x;
-        particle_rect.y = particles[i].y;
-        particle_rect.w = particles[i].w;
-        particle_rect.h = particles[i].h;
-
-        SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-        SDL_SetRenderDrawColor(renderer, 198, 204, 215, (int)particles[i].alpha);
-        SDL_RenderFillRect(renderer, &particle_rect);
-    }
+    render_particles(state, renderer);
 
     SDL_RenderPresent(renderer);
 }
