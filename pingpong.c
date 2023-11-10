@@ -163,15 +163,27 @@ void collision_particles(game_state *state, vector3 color)
 {
     int i;
     particle fragment;
-    for(i = 0; i < 50; i++) {
-        fragment.point.x = state->ball.point.x;
-        fragment.point.y = state->ball.point.y;
+    for(i = 0; i < 20; i++) {
+        if(state->ball.point.x < WINDOW_WIDTH / 2)
+            fragment.point.x = state->ball.point.x;
+        else
+            fragment.point.x = state->ball.point.x + state->ball.dimension.x;
+
+        if(state->ball.point.y < WINDOW_HEIGHT / 2)
+            fragment.point.y = state->ball.point.y;
+        else
+            fragment.point.y = state->ball.point.y + state->ball.dimension.y;
+
         fragment.velocity.x = 
-            (float)rand_num(state->ball.velocity.x - 200, state->ball.velocity.x + 200) / 4.0f;
+            (float)rand_num((int)state->ball.velocity.x - 200,
+                (int)state->ball.velocity.x + 200) / 4.0f;
         fragment.velocity.y = 
-            (float)rand_num(state->ball.velocity.y - 200, state->ball.velocity.y + 200) / 4.0f;
-        fragment.dimension.x = 3.0f;
-        fragment.dimension.y = 3.0f;
+            (float)rand_num((int)state->ball.velocity.y - 200,
+                (int)state->ball.velocity.y + 200) / 4.0f;
+
+        fragment.dimension.x = (float)rand_num(3, 5);
+        fragment.dimension.y = fragment.dimension.x;
+
         fragment.color.r = color.r;
         fragment.color.g = color.g;
         fragment.color.b = color.b;
@@ -273,7 +285,7 @@ void handle_particles(game_state *state, float delta_time)
     if(!qempty(&state->particles)) {
         struct node *tmp = state->particles.first;
         while(tmp) {
-            tmp->data.color.a -= 2; /* TODO: Lock to delta time. */
+            tmp->data.color.a -= 300.0f * delta_time;
             if(tmp->data.color.a < 0.0f) {
                 tmp = tmp->next;
                 qget(&state->particles, NULL);
