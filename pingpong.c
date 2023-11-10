@@ -15,13 +15,20 @@
 typedef struct {
     float x;
     float y;
-} xy_point;
+} vector2;
 
 typedef struct {
-    unsigned int r;
-    unsigned int g;
-    unsigned int b;
-} rgb;
+    float r;
+    float g;
+    float b;
+} vector3;
+
+typedef struct {
+    float r;
+    float g;
+    float b;
+    float a;
+} vector4;
 
 typedef struct {
     float w;
@@ -29,11 +36,10 @@ typedef struct {
 } rect;
 
 typedef struct {
-    xy_point point;
-    xy_point velocity;
-    rect dimension;
-    rgb color;
-    int alpha;
+    vector2 point;
+    vector2 velocity;
+    vector2 dimension;
+    vector4 color;
 } particle;
 
 struct node {
@@ -87,26 +93,21 @@ typedef struct {
     int last_frame_time;
 
     struct ball {
-        float x;
-        float y;
-        float width;
-        float height;
-        float acceleration_x;
-        float acceleration_y;
+        vector2 point;
+        vector2 velocity;
+        vector2 dimension;
     } ball;
 
     struct player {
-        float x;
-        float y;
-        float width;
-        float height;
-        float acceleration_y;
+        vector2 point;
+        vector2 dimension;
+        float vy;
         int score;
         int up;
         int down;
     } player_one, player_two;
 
-    queue particle_queue;
+    queue particles;
 } game_state;
 
 void exit_error(const char *error)
@@ -147,63 +148,84 @@ void initialized_font(TTF_Font **font)
         exit_error("Error opening font.");
 }
 
-void emit_particle(game_state *state, xy_point point, xy_point velocity, 
-    rect dimension, rgb color, int alpha)
+int rand_num(int m, int n)
 {
-    particle p = {point, velocity, dimension, color, alpha};
-    qput(&state->particle_queue, p);
+    return m + rand() / (RAND_MAX / (n - m + 1) + 1);
+}
+
+void emit_particle(game_state *state, particle *fragment)
+{
+    if(fragment)
+        qput(&state->particles, *fragment);
+}
+
+void collision_particles(game_state *state, vector3 color)
+{
+    int i;
+    particle fragment;
+    for(i = 0; i < 50; i++) {
+        fragment.point.x = state->ball.point.x;
+        fragment.point.y = state->ball.point.y;
+        fragment.velocity.x = 
+            (float)rand_num(state->ball.velocity.x - 200, state->ball.velocity.x + 200) / 4.0f;
+        fragment.velocity.y = 
+            (float)rand_num(state->ball.velocity.y - 200, state->ball.velocity.y + 200) / 4.0f;
+        fragment.dimension.x = 3.0f;
+        fragment.dimension.y = 3.0f;
+        fragment.color.r = color.r;
+        fragment.color.g = color.g;
+        fragment.color.b = color.b;
+        fragment.color.a = 255.0f;
+        emit_particle(state, &fragment);
+    }
 }
 
 void handle_ball(game_state *state, float delta_time)
 {
-    if(state->ball.x < state->player_one.x + state->player_one.width &&
-        (state->ball.y < state->player_one.y + state->player_one.height &&
-        state->ball.y > state->player_one.y))
-    {
-        state->ball.x = state->player_one.x + state->player_one.width;
-        state->ball.acceleration_x *= -1;
+    vector3 color;
 
-        int i;
-        for(i = 0; i < 50; i++) {
-            xy_point point = {state->ball.x + state->ball.width, state->ball.y};
-            xy_point velocity = {rand() % 81 + 80, rand() % 161 - 80};
-            rgb color = {215, 78, 66};
-            float width = (float)(rand() % 4 + 1);
-            rect dimension = {width, width};
-            emit_particle(state, point, velocity, dimension, color, 255);
-        }
+    if(state->ball.point.x < state->player_one.point.x + 
+        state->player_one.dimension.x && (state->ball.point.y < 
+        state->player_one.point.y + state->player_one.dimension.y && 
+        state->ball.point.y > state->player_one.point.y))
+    {
+        state->ball.point.x =
+            state->player_one.point.x + state->player_one.dimension.x;
+        state->ball.velocity.x *= -1;
+
+        color.r = 215.0f;
+        color.g = 78.0f;
+        color.b = 66.0f;
+        collision_particles(state, color);
     }
 
-    if(state->ball.x + state->ball.width > state->player_two.x &&
-        (state->ball.y < state->player_two.y + state->player_two.height &&
-        state->ball.y > state->player_two.y))
+    if(state->ball.point.x + state->ball.dimension.x >
+        state->player_two.point.x && (state->ball.point.y <
+        state->player_two.point.y + state->player_two.dimension.y &&
+        state->ball.point.y > state->player_two.point.y))
     {
-        state->ball.x = state->player_two.x - state->ball.width;
-        state->ball.acceleration_x *= -1;
+        state->ball.point.x =
+            state->player_two.point.x - state->ball.dimension.x;
+        state->ball.velocity.x *= -1;
 
-        int i;
-        for(i = 0; i < 50; i++) {
-            xy_point point = {state->ball.x, state->ball.y};
-            xy_point velocity = {-(rand() % 81 + 80), rand() % 161 - 80};
-            rgb color = {16, 133, 255};
-            float width = (float)(rand() % 4 + 1);
-            rect dimension = {width, width};
-            emit_particle(state, point, velocity, dimension, color, 255);
-        }
+        color.r = 16.0f;
+        color.g = 133.0f;
+        color.b = 255.0f;
+        collision_particles(state, color);
     }
 
-    if(state->ball.x <= 0) {
-        state->ball.x = WINDOW_WIDTH / 2;
-        state->ball.y = 0;
+    if(state->ball.point.x <= 0) {
+        state->ball.point.x = WINDOW_WIDTH / 2;
+        state->ball.point.y = 0;
         state->player_two.score += 1;
         if(state->player_two.score > 5) {
             state->player_two.score = 1;
             state->player_one.score = 0;
         }
     }
-    if(state->ball.x >= WINDOW_WIDTH - state->ball.width) {
-        state->ball.x = WINDOW_WIDTH / 2;
-        state->ball.y = 0;
+    if(state->ball.point.x >= WINDOW_WIDTH - state->ball.dimension.x) {
+        state->ball.point.x = WINDOW_WIDTH / 2;
+        state->ball.point.y = 0;
         state->player_one.score += 1;
         if(state->player_one.score > 5) {
             state->player_one.score = 1;
@@ -211,40 +233,50 @@ void handle_ball(game_state *state, float delta_time)
         }
     }
 
-    if(state->ball.y < 0) {
-        state->ball.acceleration_y *= -1;
-        state->ball.y = 0;
+    if(state->ball.point.y < 0) {
+        state->ball.velocity.y *= -1;
+        state->ball.point.y = 0;
+
+        color.r = 198.0f;
+        color.g = 204.0f;
+        color.b = 215.0f;
+        collision_particles(state, color);
     }
-    if(state->ball.y > WINDOW_HEIGHT - state->ball.height) {
-        state->ball.acceleration_y *= -1;
-        state->ball.y = WINDOW_HEIGHT - state->ball.height;
+    if(state->ball.point.y > WINDOW_HEIGHT - state->ball.dimension.y) {
+        state->ball.velocity.y *= -1;
+        state->ball.point.y = WINDOW_HEIGHT - state->ball.dimension.y;
+
+        color.r = 198.0f;
+        color.g = 204.0f;
+        color.b = 215.0f;
+        collision_particles(state, color);
     }
 
-    state->ball.x += state->ball.acceleration_x * delta_time;
-    state->ball.y += state->ball.acceleration_y * delta_time;
+    state->ball.point.x += state->ball.velocity.x * delta_time;
+    state->ball.point.y += state->ball.velocity.y * delta_time;
 }
 
 void handle_paddles(game_state *state, float delta_time)
 {
     if(state->player_one.up)
-        state->player_one.y -= state->player_one.acceleration_y * delta_time;
+        state->player_one.point.y -= state->player_one.vy * delta_time;
     if(state->player_one.down)
-        state->player_one.y += state->player_one.acceleration_y * delta_time;
+        state->player_one.point.y += state->player_one.vy * delta_time;
     if(state->player_two.up)
-        state->player_two.y -= state->player_one.acceleration_y * delta_time;
+        state->player_two.point.y -= state->player_one.vy * delta_time;
     if(state->player_two.down)
-        state->player_two.y += state->player_one.acceleration_y * delta_time;
+        state->player_two.point.y += state->player_one.vy * delta_time;
 }
 
 void handle_particles(game_state *state, float delta_time)
 {
-    if(!qempty(&state->particle_queue)) {
-        struct node *tmp = state->particle_queue.first;
+    if(!qempty(&state->particles)) {
+        struct node *tmp = state->particles.first;
         while(tmp) {
-            tmp->data.alpha -= 2; /* TODO: Lock to delta time. */
-            if(tmp->data.alpha < 0.0f) {
+            tmp->data.color.a -= 2; /* TODO: Lock to delta time. */
+            if(tmp->data.color.a < 0.0f) {
                 tmp = tmp->next;
-                qget(&state->particle_queue, NULL);
+                qget(&state->particles, NULL);
                 continue;
             }
             tmp->data.point.x += tmp->data.velocity.x * delta_time;
@@ -284,18 +316,20 @@ void render_score(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
 
 void render_ball(game_state *state, SDL_Renderer *renderer)
 {
-    SDL_Rect ball_rect = { state->ball.x, state->ball.y, state->ball.width,
-        state->ball.height };
+    SDL_Rect ball_rect = { state->ball.point.x, state->ball.point.y,
+        state->ball.dimension.x, state->ball.dimension.y };
     SDL_SetRenderDrawColor(renderer, 198, 204, 215, 255);
     SDL_RenderFillRect(renderer, &ball_rect);
 }
 
 void render_paddles(game_state *state, SDL_Renderer *renderer)
 {
-    SDL_Rect player_one_rect = { state->player_one.x, state->player_one.y,
-        state->player_one.width, state->player_one.height };
-    SDL_Rect player_two_rect = { state->player_two.x, state->player_two.y,
-        state->player_two.width, state->player_two.height };
+    SDL_Rect player_one_rect = {
+        state->player_one.point.x, state->player_one.point.y,
+        state->player_one.dimension.x, state->player_one.dimension.y };
+    SDL_Rect player_two_rect = {
+        state->player_two.point.x, state->player_two.point.y,
+        state->player_two.dimension.x, state->player_two.dimension.y };
 
     SDL_SetRenderDrawColor(renderer, 215, 78, 66, 255);
     SDL_RenderFillRect(renderer, &player_one_rect);
@@ -306,19 +340,19 @@ void render_paddles(game_state *state, SDL_Renderer *renderer)
 
 void render_particles(game_state *state, SDL_Renderer *renderer)
 {
-    if(!qempty(&state->particle_queue)) {
+    if(!qempty(&state->particles)) {
         SDL_Rect particle_rect;
-        struct node *tmp = state->particle_queue.first;
+        struct node *tmp = state->particles.first;
         while(tmp) {
             particle_rect.x = tmp->data.point.x;
             particle_rect.y = tmp->data.point.y;
-            particle_rect.w = tmp->data.dimension.w;
-            particle_rect.h = tmp->data.dimension.h;
+            particle_rect.w = tmp->data.dimension.x;
+            particle_rect.h = tmp->data.dimension.y;
 
             SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
             SDL_SetRenderDrawColor(renderer,
-                tmp->data.color.r, tmp->data.color.g,
-                tmp->data.color.b, tmp->data.alpha);
+                (Uint8)tmp->data.color.r, (Uint8)tmp->data.color.g,
+                (Uint8)tmp->data.color.b, (Uint8)tmp->data.color.a);
             SDL_RenderFillRect(renderer, &particle_rect);
 
             tmp = tmp->next;
@@ -331,29 +365,29 @@ void setup(game_state *state)
     state->is_running = TRUE;
     state->last_frame_time = 0;
 
-    qinit(&state->particle_queue);
+    qinit(&state->particles);
 
-    state->ball.x = 40;
-    state->ball.y = 40;
-    state->ball.width = 15;
-    state->ball.height = 15;
-    state->ball.acceleration_x = 300;
-    state->ball.acceleration_y = 400;
+    state->ball.point.x = 40;
+    state->ball.point.y = 40;
+    state->ball.dimension.x = 15;
+    state->ball.dimension.y = 15;
+    state->ball.velocity.x = 500;
+    state->ball.velocity.y = 600;
 
-    state->player_one.x = 10;
-    state->player_one.y = 10;
-    state->player_one.width = 10;
-    state->player_one.height = 100;
-    state->player_one.acceleration_y = 500;
+    state->player_one.point.x = 10;
+    state->player_one.point.y = 10;
+    state->player_one.dimension.x = 10;
+    state->player_one.dimension.y = 100;
+    state->player_one.vy = 600;
     state->player_one.score = 0;
     state->player_one.up = FALSE;
     state->player_one.down = FALSE;
 
-    state->player_two.x = WINDOW_WIDTH - 20;
-    state->player_two.y = 10;
-    state->player_two.width = 10;
-    state->player_two.height = 100;
-    state->player_two.acceleration_y = 500;
+    state->player_two.point.x = WINDOW_WIDTH - 20;
+    state->player_two.point.y = 10;
+    state->player_two.dimension.x = 10;
+    state->player_two.dimension.y = 100;
+    state->player_two.vy = 600;
     state->player_two.score = 0;
     state->player_two.up = FALSE;
     state->player_two.down = FALSE;
@@ -407,7 +441,8 @@ void update(game_state *state)
     int time_to_wait;
     float delta_time;
 
-    time_to_wait = TARGET_FRAME_TIME - (SDL_GetTicks() - state->last_frame_time);
+    time_to_wait = TARGET_FRAME_TIME - (SDL_GetTicks() - 
+        state->last_frame_time);
 
     if(time_to_wait > 0 && time_to_wait <= TARGET_FRAME_TIME)
         SDL_Delay(time_to_wait);
