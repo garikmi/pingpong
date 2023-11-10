@@ -1,114 +1,13 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <time.h>
+
 #include <SDL2/SDL.h>
 #include <SDL_ttf.h>
 
-#define TRUE 1
-#define FALSE 0
-
-#define WINDOW_WIDTH 800
-#define WINDOW_HEIGHT 600
-
-#define FPS 120
-#define TARGET_FRAME_TIME (1000 / FPS)
-
-typedef struct {
-    float x;
-    float y;
-} vector2;
-
-typedef struct {
-    float r;
-    float g;
-    float b;
-} vector3;
-
-typedef struct {
-    float r;
-    float g;
-    float b;
-    float a;
-} vector4;
-
-typedef struct {
-    float w;
-    float h;
-} rect;
-
-typedef struct {
-    vector2 point;
-    vector2 velocity;
-    vector2 dimension;
-    vector4 color;
-} particle;
-
-struct node {
-    struct node *next;
-    particle data;
-};
-
-typedef struct {
-    struct node *first;
-    struct node *last;
-} queue;
-
-void qinit(queue *item)
-{
-    item->first = NULL;
-    item->last = NULL;
-}
-
-void qput(queue *item, particle data)
-{
-    if(!item->first) {
-        item->first = malloc(sizeof(struct node));
-        item->last = item->first;
-    } else {
-        item->last->next = malloc(sizeof(struct node));
-        item->last = item->last->next;
-    }
-    item->last->data = data;
-    item->last->next = NULL;
-}
-
-void qget(queue *item, particle *data)
-{
-    if(data)
-        *data = item->first->data;
-
-    struct node *tmp = item->first;
-    item->first = item->first->next;
-    if(!item->first)
-        item->last = NULL;
-    free(tmp);
-}
-
-int qempty(queue *item)
-{
-    return !item->first;
-}
-
-typedef struct {
-    int is_running;
-    int last_frame_time;
-
-    struct ball {
-        vector2 point;
-        vector2 velocity;
-        vector2 dimension;
-    } ball;
-
-    struct player {
-        vector2 point;
-        vector2 dimension;
-        float vy;
-        int score;
-        int up;
-        int down;
-    } player_one, player_two;
-
-    queue particles;
-} game_state;
+#include "types.h"
+#include "settings.h"
+#include "queue.h"
 
 void exit_error(const char *error)
 {
