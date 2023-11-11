@@ -2,6 +2,8 @@
 #define TYPES_H_SENTRY
 
 #include <stdlib.h>
+#include <SDL2/SDL.h>
+#include <SDL_ttf.h>
 
 
 #ifndef TRUE
@@ -53,8 +55,13 @@ typedef struct {
 } queue;
 
 typedef struct {
+    SDL_Window *window;
+    SDL_Renderer *renderer;
+    TTF_Font *font;
+
     int is_running;
     int last_frame_time;
+    float delta_time;
 
     struct ball {
         vector2 point;

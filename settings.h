@@ -17,4 +17,8 @@
 #define TARGET_FRAME_TIME (1000 / FPS)
 #endif
 
+#ifndef ENABLE_FPS
+#define ENABLE_FPS 0
+#endif
+
 #endif

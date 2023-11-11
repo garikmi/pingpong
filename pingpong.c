@@ -15,37 +15,44 @@ void exit_error(const char *error)
     exit(1);
 }
 
-void initialize_window(SDL_Window **window, SDL_Renderer **renderer)
+void initialize_window(game_state *state)
 {
     int sdl;
     sdl = SDL_Init(SDL_INIT_EVERYTHING);
     if(sdl != 0)
         exit_error("Error initializing SDL.");
 
-    *window = SDL_CreateWindow(
+    state->window = SDL_CreateWindow(
         NULL,
         SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
         WINDOW_WIDTH, WINDOW_HEIGHT,
         SDL_WINDOW_SHOWN);
-    if(!window)
+    if(!state->window)
         exit_error("Error creating SDL Window.");
 
-    *renderer = SDL_CreateRenderer(*window, -1, 0);
-    if(!renderer)
+    state->renderer = SDL_CreateRenderer(state->window, -1, 0);
+    if(!state->renderer)
         exit_error("Error creating SDL Renderer.");
 }
 
-void initialized_font(TTF_Font **font)
+void initialize_font(game_state *state)
 {
     int ttf;
     ttf = TTF_Init();
     if(ttf < 0)
         exit_error("Error opening font.");
 
-    *font = TTF_OpenFont("./iosevka-bold.ttf", 36);
-    if(!font)
+    state->font = TTF_OpenFont("./iosevka-bold.ttf", 36);
+    if(!state->font)
         exit_error("Error opening font.");
 }
+
+#if ENABLE_FPS
+int get_fps(game_state *state)
+{
+    return (int)(1.0f / state->delta_time);
+}
+#endif
 
 int rand_num(int m, int n)
 {
@@ -91,7 +98,7 @@ void collision_particles(game_state *state, vector3 color)
     }
 }
 
-void handle_ball(game_state *state, float delta_time)
+void handle_ball(game_state *state)
 {
     vector3 color;
 
@@ -163,77 +170,139 @@ void handle_ball(game_state *state, float delta_time)
         collision_particles(state, color);
     }
 
-    state->ball.point.x += state->ball.velocity.x * delta_time;
-    state->ball.point.y += state->ball.velocity.y * delta_time;
+    state->ball.point.x += state->ball.velocity.x * state->delta_time;
+    state->ball.point.y += state->ball.velocity.y * state->delta_time;
 }
 
-void handle_paddles(game_state *state, float delta_time)
+void handle_paddles(game_state *state)
 {
     if(state->player_one.up)
-        state->player_one.point.y -= state->player_one.vy * delta_time;
+        state->player_one.point.y -= state->player_one.vy * state->delta_time;
     if(state->player_one.down)
-        state->player_one.point.y += state->player_one.vy * delta_time;
+        state->player_one.point.y += state->player_one.vy * state->delta_time;
     if(state->player_two.up)
-        state->player_two.point.y -= state->player_one.vy * delta_time;
+        state->player_two.point.y -= state->player_one.vy * state->delta_time;
     if(state->player_two.down)
-        state->player_two.point.y += state->player_one.vy * delta_time;
+        state->player_two.point.y += state->player_one.vy * state->delta_time;
 }
 
-void handle_particles(game_state *state, float delta_time)
+void handle_particles(game_state *state)
 {
     if(!qempty(&state->particles)) {
         struct node *tmp = state->particles.first;
         while(tmp) {
-            tmp->data.color.a -= 300.0f * delta_time;
+            tmp->data.color.a -= 300.0f * state->delta_time;
             if(tmp->data.color.a < 0.0f) {
                 tmp = tmp->next;
                 qget(&state->particles, NULL);
                 continue;
             }
-            tmp->data.point.x += tmp->data.velocity.x * delta_time;
-            tmp->data.point.y += tmp->data.velocity.y * delta_time;
+            tmp->data.point.x += tmp->data.velocity.x * state->delta_time;
+            tmp->data.point.y += tmp->data.velocity.y * state->delta_time;
 
             tmp = tmp->next;
         }
     }
 }
 
-void render_score(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
-{
-    /* Build score string */
-    char *score;
-    score = malloc(3*sizeof(char));
-    score[0] = (char)(state->player_one.score + 48); /* FIX */
-    score[1] = ':';
-    score[2] = (char)(state->player_two.score + 48);
-
+void render_text_leading(game_state *state, const char *text, int fsize,
+    vector2 pos, vector4 color)
+{    
     /* Render */
-    SDL_Surface *text;
-    SDL_Color color = { 198, 204, 215, 255 };
-    text = TTF_RenderText_Solid(font, score, color);
-    if (!text)
+    TTF_SetFontSize(state->font, fsize);
+    SDL_Surface *text_surface;
+    SDL_Color surface_color = { 
+        (int)color.r, (int)color.g, (int)color.b, (int)color.a };
+    text_surface = TTF_RenderText_Solid(state->font, text, surface_color);
+    if (!text_surface)
         exit_error("Error initializing Text.");
 
     SDL_Texture *text_texture;
-    text_texture = SDL_CreateTextureFromSurface(renderer, text);
-    SDL_Rect dest = { WINDOW_WIDTH/2-20, 10, text->w, text->h };
-    SDL_RenderCopy(renderer, text_texture, NULL, &dest);
+    text_texture = SDL_CreateTextureFromSurface(state->renderer,
+        text_surface);
+
+    SDL_Rect dest = { (int)pos.x, (int)pos.y, text_surface->w,
+        text_surface->h };
+    SDL_RenderCopy(state->renderer, text_texture, NULL, &dest);
 
     /* free */
     SDL_DestroyTexture(text_texture);
-    SDL_FreeSurface(text);
+    SDL_FreeSurface(text_surface);
+
+}
+
+void render_text_centered(game_state *state, const char *text, int fsize,
+    vector2 pos, vector4 color)
+{    
+    /* Render */
+    TTF_SetFontSize(state->font, fsize);
+    SDL_Surface *text_surface;
+    SDL_Color surface_color = { 
+        (int)color.r, (int)color.g, (int)color.b, (int)color.a };
+    text_surface = TTF_RenderText_Solid(state->font, text, surface_color);
+    if (!text_surface)
+        exit_error("Error initializing Text.");
+
+    SDL_Texture *text_texture;
+    text_texture = SDL_CreateTextureFromSurface(state->renderer,
+        text_surface);
+
+    SDL_Rect dest = { (int)(pos.x - (float)text_surface->w / 2), (int)pos.y,
+        text_surface->w, text_surface->h };
+    SDL_RenderCopy(state->renderer, text_texture, NULL, &dest);
+
+    /* free */
+    SDL_DestroyTexture(text_texture);
+    SDL_FreeSurface(text_surface);
+
+}
+
+void render_score(game_state *state)
+{
+    /* Build score string */
+    char *score;
+    score = malloc(10*sizeof(char));
+    sprintf(score, "%d:%d",
+            state->player_one.score, state->player_two.score);
+
+
+    /* Render */
+    vector2 pos = { (float)(WINDOW_WIDTH / 2), 10.0f };
+    vector4 color = { 198.0f, 204.0f, 215.0f, 255.0f };
+    render_text_centered(state, score, 30, pos, color);
+
+    /* free */
     free(score);
 }
 
-void render_ball(game_state *state, SDL_Renderer *renderer)
+#if ENABLE_FPS
+void render_fps(game_state *state)
+{
+    /* Build score string */
+    char *fps;
+    fps = malloc(10*sizeof(char));
+    sprintf(fps, "%d", get_fps(state));
+
+    /* Render */
+    vector2 pos = { 10.0f, 10.0f };
+    vector4 color = { 198.0f, 204.0f, 215.0f, 255.0f };
+    render_text_leading(state, fps, 16, pos, color);
+
+    /* free */
+    free(fps);
+}
+#endif
+
+
+void render_ball(game_state *state)
 {
     SDL_Rect ball_rect = { state->ball.point.x, state->ball.point.y,
         state->ball.dimension.x, state->ball.dimension.y };
-    SDL_SetRenderDrawColor(renderer, 198, 204, 215, 255);
-    SDL_RenderFillRect(renderer, &ball_rect);
+    SDL_SetRenderDrawColor(state->renderer, 198, 204, 215, 255);
+    SDL_RenderFillRect(state->renderer, &ball_rect);
 }
 
-void render_paddles(game_state *state, SDL_Renderer *renderer)
+void render_paddles(game_state *state)
 {
     SDL_Rect player_one_rect = {
         state->player_one.point.x, state->player_one.point.y,
@@ -242,14 +311,14 @@ void render_paddles(game_state *state, SDL_Renderer *renderer)
         state->player_two.point.x, state->player_two.point.y,
         state->player_two.dimension.x, state->player_two.dimension.y };
 
-    SDL_SetRenderDrawColor(renderer, 215, 78, 66, 255);
-    SDL_RenderFillRect(renderer, &player_one_rect);
+    SDL_SetRenderDrawColor(state->renderer, 215, 78, 66, 255);
+    SDL_RenderFillRect(state->renderer, &player_one_rect);
 
-    SDL_SetRenderDrawColor(renderer, 16, 133, 255, 255);
-    SDL_RenderFillRect(renderer, &player_two_rect);
+    SDL_SetRenderDrawColor(state->renderer, 16, 133, 255, 255);
+    SDL_RenderFillRect(state->renderer, &player_two_rect);
 }
 
-void render_particles(game_state *state, SDL_Renderer *renderer)
+void render_particles(game_state *state)
 {
     if(!qempty(&state->particles)) {
         SDL_Rect particle_rect;
@@ -260,11 +329,11 @@ void render_particles(game_state *state, SDL_Renderer *renderer)
             particle_rect.w = tmp->data.dimension.x;
             particle_rect.h = tmp->data.dimension.y;
 
-            SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND);
-            SDL_SetRenderDrawColor(renderer,
+            SDL_SetRenderDrawBlendMode(state->renderer, SDL_BLENDMODE_BLEND);
+            SDL_SetRenderDrawColor(state->renderer,
                 (Uint8)tmp->data.color.r, (Uint8)tmp->data.color.g,
                 (Uint8)tmp->data.color.b, (Uint8)tmp->data.color.a);
-            SDL_RenderFillRect(renderer, &particle_rect);
+            SDL_RenderFillRect(state->renderer, &particle_rect);
 
             tmp = tmp->next;
         }
@@ -273,6 +342,11 @@ void render_particles(game_state *state, SDL_Renderer *renderer)
 
 void setup(game_state *state)
 {
+    srand(time(NULL));
+
+    initialize_window(state);
+    initialize_font(state);
+
     state->is_running = TRUE;
     state->last_frame_time = 0;
 
@@ -350,7 +424,6 @@ void process_input(game_state *state)
 void update(game_state *state)
 {
     int time_to_wait;
-    float delta_time;
 
     time_to_wait = TARGET_FRAME_TIME - (SDL_GetTicks() - 
         state->last_frame_time);
@@ -358,55 +431,51 @@ void update(game_state *state)
     if(time_to_wait > 0 && time_to_wait <= TARGET_FRAME_TIME)
         SDL_Delay(time_to_wait);
 
-    delta_time = (SDL_GetTicks() - state->last_frame_time) / 1000.0f;
+    state->delta_time = (SDL_GetTicks() - state->last_frame_time) / 1000.0f;
 
     state->last_frame_time = SDL_GetTicks();
 
-    handle_ball(state, delta_time);
-    handle_paddles(state, delta_time);
-    handle_particles(state, delta_time);
+    handle_ball(state);
+    handle_paddles(state);
+    handle_particles(state);
 }
 
-void render(game_state *state, SDL_Renderer *renderer, TTF_Font *font)
+void render(game_state *state)
 {
-    SDL_SetRenderDrawColor(renderer, 24, 26, 31, 255);
-    SDL_RenderClear(renderer);
+    SDL_SetRenderDrawColor(state->renderer, 24, 26, 31, 255);
+    SDL_RenderClear(state->renderer);
 
-    render_paddles(state, renderer);
-    render_ball(state, renderer);
-    render_score(state, renderer, font);
-    render_particles(state, renderer);
+    render_paddles(state);
+    render_ball(state);
+    render_particles(state);
 
-    SDL_RenderPresent(renderer);
+    render_score(state);
+#if ENABLE_FPS
+    render_fps(state);
+#endif
+
+    SDL_RenderPresent(state->renderer);
 }
 
-void destroy_window(SDL_Window *window, SDL_Renderer *renderer)
+void destroy_window(game_state *state)
 {
-    SDL_DestroyRenderer(renderer);
-    SDL_DestroyWindow(window);
+    SDL_DestroyRenderer(state->renderer);
+    SDL_DestroyWindow(state->window);
     SDL_Quit();
 }
 
 int main()
 {
-    srand(time(NULL));
-
     game_state state;
-    SDL_Window *window = NULL;
-    SDL_Renderer *renderer = NULL;
-    TTF_Font *font;
-
-    initialize_window(&window, &renderer);
-    initialized_font(&font);
 
     setup(&state);
     while(state.is_running) {
         process_input(&state);
         update(&state);
-        render(&state, renderer, font);
+        render(&state);
     }
 
-    destroy_window(window, renderer);
+    destroy_window(&state);
 
     return 0;
 }
