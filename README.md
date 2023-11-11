@@ -7,8 +7,16 @@ make
 For other platforms modify flags in the Makefile.
 
 # FPS
+Cap FPS:
+
 ```
 make DFLAGS="-D FPS=30"
+```
+
+Display FPS:
+
+```
+make DFLAGS="-D ENABLE_FPS=1"
 ```
 
 # Run
