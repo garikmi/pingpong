@@ -63,13 +63,13 @@ typedef struct {
     int last_frame_time;
     float delta_time;
 
-    struct ball {
+    struct {
         vector2 point;
         vector2 velocity;
         vector2 dimension;
     } ball;
 
-    struct player {
+    struct {
         vector2 point;
         vector2 dimension;
         float vy;

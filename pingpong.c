@@ -134,26 +134,18 @@ void handle_ball(game_state *state)
 
     if(state->ball.point.x <= 0) {
         state->ball.point.x = WINDOW_WIDTH / 2;
-        state->ball.point.y = 0;
+        state->ball.point.y = 1;
         state->player_two.score += 1;
-        if(state->player_two.score > 5) {
-            state->player_two.score = 1;
-            state->player_one.score = 0;
-        }
     }
     if(state->ball.point.x >= WINDOW_WIDTH - state->ball.dimension.x) {
         state->ball.point.x = WINDOW_WIDTH / 2;
-        state->ball.point.y = 0;
+        state->ball.point.y = 1;
         state->player_one.score += 1;
-        if(state->player_one.score > 5) {
-            state->player_one.score = 1;
-            state->player_two.score = 0;
-        }
     }
 
     if(state->ball.point.y < 0) {
         state->ball.velocity.y *= -1;
-        state->ball.point.y = 0;
+        state->ball.point.y = 1;
 
         color.r = 198.0f;
         color.g = 204.0f;
@@ -262,14 +254,18 @@ void render_score(game_state *state)
     /* Build score string */
     char *score;
     score = malloc(10*sizeof(char));
-    sprintf(score, "%d:%d",
-            state->player_one.score, state->player_two.score);
 
-
-    /* Render */
-    vector2 pos = { (float)(WINDOW_WIDTH / 2), 10.0f };
+    /* Render player one score */
+    sprintf(score, "%d", state->player_one.score);
+    vector2 pos = { (float)(WINDOW_WIDTH / 4), 10.0f };
     vector4 color = { 198.0f, 204.0f, 215.0f, 255.0f };
     render_text_centered(state, score, 30, pos, color);
+
+    /* Render player two score */
+    sprintf(score, "%d", state->player_two.score);
+    pos.x = WINDOW_WIDTH - pos.x;
+    render_text_centered(state, score, 30, pos, color);
+    sprintf(score, "%d", state->player_one.score);
 
     /* free */
     free(score);
@@ -338,6 +334,18 @@ void render_particles(game_state *state)
             tmp = tmp->next;
         }
     }
+}
+
+/* TODO: ??? */
+void render_divider(game_state *state)
+{
+    SDL_SetRenderDrawColor(state->renderer, 13, 17, 23, 255);
+    SDL_RenderDrawLine(state->renderer, (int)(WINDOW_WIDTH / 2), 0, 
+        (int)(WINDOW_WIDTH / 2), WINDOW_HEIGHT);
+    SDL_RenderDrawLine(state->renderer, (int)(WINDOW_WIDTH / 2) - 1, 0, 
+        (int)(WINDOW_WIDTH / 2) - 1, WINDOW_HEIGHT);
+    SDL_RenderDrawLine(state->renderer, (int)(WINDOW_WIDTH / 2) + 1, 0, 
+        (int)(WINDOW_WIDTH / 2) + 1, WINDOW_HEIGHT);
 }
 
 void setup(game_state *state)
@@ -444,6 +452,8 @@ void render(game_state *state)
 {
     SDL_SetRenderDrawColor(state->renderer, 24, 26, 31, 255);
     SDL_RenderClear(state->renderer);
+
+    render_divider(state);
 
     render_paddles(state);
     render_ball(state);
