@@ -9,6 +9,10 @@
 #include "settings.h"
 #include "queue.h"
 
+#if EMBED_FONTS
+#include "iosevka_bold.h"
+#endif
+
 void exit_error(const char *error)
 {
     fprintf(stderr, "%s\n", error);
@@ -37,14 +41,24 @@ void initialize_window(game_state *state)
 
 void initialize_font(game_state *state)
 {
-    int ttf;
-    ttf = TTF_Init();
+    int ttf = TTF_Init();
     if(ttf < 0)
         exit_error("Error opening font.");
 
-    state->font = TTF_OpenFont("./iosevka-bold.ttf", 36);
+#if EMBED_FONTS
+    SDL_RWops *font_mem = SDL_RWFromConstMem(iosevka_bold_ttf,
+        iosevka_bold_ttf_len);
+    if(!font_mem)
+        exit_error("Error creating font memory.");
+
+    state->font = TTF_OpenFontRW(font_mem, TRUE, 24);
+    if(!state->font)
+        exit_error("Error opening memory font.");
+#else
+    state->font = TTF_OpenFont("./iosevka-bold.ttf", 24);
     if(!state->font)
         exit_error("Error opening font.");
+#endif
 }
 
 #if ENABLE_FPS
@@ -69,7 +83,7 @@ void collision_particles(game_state *state, vector3 color)
 {
     int i;
     particle fragment;
-    for(i = 0; i < 20; i++) {
+    for(i = 0; i < 30; i++) {
         if(state->ball.point.x < WINDOW_WIDTH / 2)
             fragment.point.x = state->ball.point.x;
         else
@@ -207,11 +221,13 @@ void render_text_leading(game_state *state, const char *text, int fsize,
         (int)color.r, (int)color.g, (int)color.b, (int)color.a };
     text_surface = TTF_RenderText_Solid(state->font, text, surface_color);
     if (!text_surface)
-        exit_error("Error initializing Text.");
+        exit_error("Error initializing text surface.");
 
     SDL_Texture *text_texture;
     text_texture = SDL_CreateTextureFromSurface(state->renderer,
         text_surface);
+    if (!text_texture)
+        exit_error("Error initializing text texture.");
 
     SDL_Rect dest = { (int)pos.x, (int)pos.y, text_surface->w,
         text_surface->h };
@@ -220,7 +236,6 @@ void render_text_leading(game_state *state, const char *text, int fsize,
     /* free */
     SDL_DestroyTexture(text_texture);
     SDL_FreeSurface(text_surface);
-
 }
 
 void render_text_centered(game_state *state, const char *text, int fsize,
@@ -233,11 +248,13 @@ void render_text_centered(game_state *state, const char *text, int fsize,
         (int)color.r, (int)color.g, (int)color.b, (int)color.a };
     text_surface = TTF_RenderText_Solid(state->font, text, surface_color);
     if (!text_surface)
-        exit_error("Error initializing Text.");
+        exit_error("Error initializing text surface.");
 
     SDL_Texture *text_texture;
     text_texture = SDL_CreateTextureFromSurface(state->renderer,
         text_surface);
+    if (!text_texture)
+        exit_error("Error initializing text texture.");
 
     SDL_Rect dest = { (int)(pos.x - (float)text_surface->w / 2), (int)pos.y,
         text_surface->w, text_surface->h };
@@ -364,14 +381,14 @@ void setup(game_state *state)
     state->ball.point.y = 40;
     state->ball.dimension.x = 15;
     state->ball.dimension.y = 15;
-    state->ball.velocity.x = 500;
-    state->ball.velocity.y = 600;
+    state->ball.velocity.x = 700;
+    state->ball.velocity.y = 400;
 
     state->player_one.point.x = 10;
     state->player_one.point.y = 10;
     state->player_one.dimension.x = 10;
     state->player_one.dimension.y = 100;
-    state->player_one.vy = 600;
+    state->player_one.vy = 800;
     state->player_one.score = 0;
     state->player_one.up = FALSE;
     state->player_one.down = FALSE;
@@ -380,7 +397,7 @@ void setup(game_state *state)
     state->player_two.point.y = 10;
     state->player_two.dimension.x = 10;
     state->player_two.dimension.y = 100;
-    state->player_two.vy = 600;
+    state->player_two.vy = 800;
     state->player_two.score = 0;
     state->player_two.up = FALSE;
     state->player_two.down = FALSE;
@@ -474,6 +491,12 @@ void destroy_window(game_state *state)
     SDL_Quit();
 }
 
+void destroy_font(game_state *state)
+{
+    TTF_CloseFont(state->font);
+    TTF_Quit();
+}
+
 int main()
 {
     game_state state;
@@ -485,6 +508,7 @@ int main()
         render(&state);
     }
 
+    destroy_font(&state);
     destroy_window(&state);
 
     return 0;

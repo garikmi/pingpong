@@ -19,6 +19,13 @@ Display FPS:
 make DFLAGS="-D ENABLE_FPS=1"
 ```
 
+# Embed Fonts
+
+```
+xxd -i iosevka-bold.ttf > iosevka_bold.h
+make DFLAGS="-D EMBED_FONTS=1"
+```
+
 # Run
 ```
 ./pingpong

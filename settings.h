@@ -2,11 +2,11 @@
 #define SETTINGS_H_SENTRY
 
 #ifndef WINDOW_WIDTH
-#define WINDOW_WIDTH 800
+#define WINDOW_WIDTH 1000
 #endif
 
 #ifndef WINDOW_HEIGHT
-#define WINDOW_HEIGHT 600
+#define WINDOW_HEIGHT 650
 #endif
 
 #ifndef FPS
@@ -19,6 +19,10 @@
 
 #ifndef ENABLE_FPS
 #define ENABLE_FPS 0
+#endif
+
+#ifndef EMBED_FONTS
+#define EMBED_FONTS 0
 #endif
 
 #endif
