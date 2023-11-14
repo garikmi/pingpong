@@ -1,3 +1,5 @@
+![Screenshot of a gameplay.](/screenshot.png)
+
 # Build
 For MacOS:
 
